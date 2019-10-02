@@ -31,8 +31,8 @@ ROS2CAN::ROS2CAN(int mode):Node("Robot"){
     ROS2CAN::thisPtr = this;
     //CAN Config
     CAN_cfg.speed = CAN_SPEED_125KBPS;
-    CAN_cfg.tx_pin_id = GPIO_NUM_5;
-    CAN_cfg.rx_pin_id = GPIO_NUM_4;
+    CAN_cfg.tx_pin_id = GPIO_NUM_26;
+    CAN_cfg.rx_pin_id = GPIO_NUM_36;
     CAN_cfg.rx_queue = xQueueCreate(CAN_RX_QUEUE_SIZE, sizeof(CAN_frame_t));
     can = new ESP32CAN();
     can->CANInit();
@@ -72,6 +72,9 @@ void ROS2CAN::watchRXCAN(void *unuse){
     while(1){
         if (xQueueReceive(CAN_cfg.rx_queue, &_this->rx_frame, 3 * portTICK_PERIOD_MS) == pdTRUE) {
             //キューの中身をpubmsgにしてsetPublishmsgよぶ
+            xSemaphoreTake(_this->pubsemapho, portMAX_DELAY);
+            _this->pubmsg.linear = _this->rx_frame.data.u32[0];
+            _this->pubmsg.angular = _this->rx_frame.data.u32[1];
         }
         delay(1);
     }
@@ -81,8 +84,12 @@ void ROS2CAN::sendTXCAN(geometry_msgs::Twist sendmsg){
     static SemaphoreHandle_t sendsemapho = xSemaphoreCreateBinary();
     
     CAN_frame_t tx_frame;
+    tx_frame.MsgID = 0x001;
+    tx_frame.FIR.B.DLC = 8;
     //sendmsgをCAN_frameに変換してCANwrite
     xSemaphoreTake(sendsemapho, portMAX_DELAY);
+    tx_frame.data.u32[0] = submsg.linear.x;
+    tx_frame.data.u32[1] = submsg.angular.x;
     can->CANWriteFrame(&tx_frame);
     xSemaphoreGive(sendsemapho);
 }

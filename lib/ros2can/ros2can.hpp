@@ -42,7 +42,6 @@ SOFTWARE.
 
 #define CAN_RX_QUEUE_SIZE 2
 
-//CAN_device_t CAN_cfg;
 class ROS2CAN : public ros2::Node{
 private:
     geometry_msgs::Twist pubmsg, submsg;
@@ -50,7 +49,6 @@ private:
     SemaphoreHandle_t pubsemapho, subsemapho;
     TaskHandle_t publish, canrx;
     ros2::Publisher<geometry_msgs::Twist> *publisher;
-     
     CAN_frame_t rx_frame;
     ESP32CAN *can;
 
