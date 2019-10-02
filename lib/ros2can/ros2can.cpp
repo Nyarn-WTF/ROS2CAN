@@ -73,8 +73,8 @@ void ROS2CAN::watchRXCAN(void *unuse){
         if (xQueueReceive(CAN_cfg.rx_queue, &_this->rx_frame, 3 * portTICK_PERIOD_MS) == pdTRUE) {
             //キューの中身をpubmsgにしてsetPublishmsgよぶ
             xSemaphoreTake(_this->pubsemapho, portMAX_DELAY);
-            _this->pubmsg.linear = _this->rx_frame.data.u32[0];
-            _this->pubmsg.angular = _this->rx_frame.data.u32[1];
+            _this->pubmsg.linear.x = (double)_this->rx_frame.data.u32[0];
+            _this->pubmsg.angular.z = (double)_this->rx_frame.data.u32[1];
         }
         delay(1);
     }
@@ -88,8 +88,8 @@ void ROS2CAN::sendTXCAN(geometry_msgs::Twist sendmsg){
     tx_frame.FIR.B.DLC = 8;
     //sendmsgをCAN_frameに変換してCANwrite
     xSemaphoreTake(sendsemapho, portMAX_DELAY);
-    tx_frame.data.u32[0] = submsg.linear.x;
-    tx_frame.data.u32[1] = submsg.angular.x;
+    tx_frame.data.u32[0] = (float)submsg.linear.x;
+    tx_frame.data.u32[1] = (float)submsg.angular.x;
     can->CANWriteFrame(&tx_frame);
     xSemaphoreGive(sendsemapho);
 }
