@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <ros2arduino.h>
-#include <CAN.h>
+#include <ESP32SJA1000.h>
 #include "main.hpp"
 
 class ROS2CAN : public ros2::Node{
@@ -18,10 +18,18 @@ private:
 
   static void publishing(void *arg){
     static ROS2CAN *_this = ROS2CAN::thisPtr;
+    geometry_msgs::Twist msg;
+    while(1){
+      if(xQueueReceive(_this->status_q, &msg, 0) == pdTRUE){
+        _this->_publisher->publish(&msg);
+      }
+      delay(1);
+    }
   }
 
-  static void CANRead(){
+  static void CANRead(int psize){
     static ROS2CAN *_this = ROS2CAN::thisPtr;
+    
   }
 
   static void CANSend(){
@@ -40,6 +48,9 @@ public:
     while(!Serial);
     _publisher = this->createPublisher<geometry_msgs::Twist>("RobotState");
     this->createSubscriber<geometry_msgs::Twist>("Command2Robot", (ros2::CallbackFunc)this->subsclibed, nullptr);
+    xTaskCreatePinnedToCore(publishing, "pub", 1024*4, NULL, 3, NULL, 1);
+    CAN.begin(1000E3);
+    CAN.onReceive(CANRead);
     ros2::init(&Serial);
   }
 
@@ -51,6 +62,9 @@ public:
     while(WiFi.status() != WL_CONNECTED);
      _publisher = this->createPublisher<geometry_msgs::Twist>("RobotState");
     this->createSubscriber<geometry_msgs::Twist>("Command2Robot", (ros2::CallbackFunc)this->subsclibed, nullptr);
+    xTaskCreatePinnedToCore(publishing, "pub", 1024*4, NULL, 3, NULL, 1);
+    CAN.begin(1000E3);
+    CAN.onReceive(CANRead);
     ros2::init(udp, AGENT_IP, AGENT_PORT);
   }
 };
@@ -64,7 +78,6 @@ void setup() {
 }
 
 void loop() {
-  disableCore1WDT();
   enableCore1WDT();
   
   ros2::spin(node);
