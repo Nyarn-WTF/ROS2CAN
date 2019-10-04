@@ -5,9 +5,9 @@ ROS2CAN *ros2can;
 
 void setup() {
   ros2can = new ROS2CAN(ROSWIFI);
-  ros2can->begin();
+  //ros2can->begin();
 }
 
 void loop() {
-  ros2::spin(ros2can);
+  //ros2::spin(ros2can);
 }

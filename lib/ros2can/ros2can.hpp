@@ -28,9 +28,8 @@ SOFTWARE.
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <ros2arduino.h>
-#include <ESP32CAN.h>
-#include <CAN_config.h>
-
+#include <driver/can.h>
+#include <M5StickC.h>
 
 #define SSID ""
 #define SSID_PW ""
@@ -51,6 +50,7 @@ private:
     ros2::Publisher<geometry_msgs::Twist> *publisher;
     CAN_frame_t rx_frame;
     ESP32CAN *can;
+    M5StickC device;
 
     static void cbPublish(void*);
     static void cbSubsclibe(geometry_msgs::Twist*, void*);

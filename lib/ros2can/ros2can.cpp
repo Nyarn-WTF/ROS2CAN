@@ -24,11 +24,14 @@ SOFTWARE.
 
 #include <ros2can.hpp>
 
-ROS2CAN *ROS2CAN::thisPtr = NULL;
-CAN_device_t CAN_cfg;
+extern ROS2CAN *ROS2CAN::thisPtr;
+//CAN_device_t CAN_cfg;
 
 ROS2CAN::ROS2CAN(int mode):Node("Robot"){
+    device.begin();
+    delay(10000);
     ROS2CAN::thisPtr = this;
+    
     //CAN Config
     CAN_cfg.speed = CAN_SPEED_125KBPS;
     CAN_cfg.tx_pin_id = GPIO_NUM_26;
