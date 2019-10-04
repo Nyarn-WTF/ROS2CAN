@@ -3,38 +3,60 @@
 #include <WiFiUdp.h>
 #include <ros2arduino.h>
 #include <CAN.h>
-
-#define SSID       "SSID"
-#define SSID_PW    "PW"
-#define AGENT_IP   "IPADDRESS"
-#define AGENT_PORT 2019
+#include "main.hpp"
 
 class ROS2CAN : public ros2::Node{
 private:
+  ros2::Publisher<geometry_msgs::Twist> *_publisher;
+  QueueHandle_t command_q, status_q;
+  
+  static void subsclibed(geometry_msgs::Twist* msg, void *arg){
+    (void)(arg);
+    static ROS2CAN *_this = ROS2CAN::thisPtr;
+    xQueueSendFromISR(_this->command_q, msg, NULL);
+  }
+
+  static void publishing(void *arg){
+    static ROS2CAN *_this = ROS2CAN::thisPtr;
+  }
+
+  static void CANRead(){
+    static ROS2CAN *_this = ROS2CAN::thisPtr;
+  }
+
+  static void CANSend(){
+    static ROS2CAN *_this = ROS2CAN::thisPtr;
+  }
+
 public:
+  static ROS2CAN* thisPtr;
+
   ROS2CAN():Node("RobotNode"){
+    thisPtr = this;
+    command_q = xQueueCreate(QUEUE_SIZE, sizeof(geometry_msgs::Twist));
+    status_q = xQueueCreate(QUEUE_SIZE, sizeof(geometry_msgs::Twist));
     Serial.end();
     Serial.begin(115200);
     while(!Serial);
+    _publisher = this->createPublisher<geometry_msgs::Twist>("RobotState");
+    this->createSubscriber<geometry_msgs::Twist>("Command2Robot", (ros2::CallbackFunc)this->subsclibed, nullptr);
     ros2::init(&Serial);
   }
 
   ROS2CAN(WiFiUDP *udp):Node("RobotNode"){
+    thisPtr = this;
+    command_q = xQueueCreate(QUEUE_SIZE, sizeof(geometry_msgs::Twist));
+    status_q = xQueueCreate(QUEUE_SIZE, sizeof(geometry_msgs::Twist));
     WiFi.begin(SSID, SSID_PW);
     while(WiFi.status() != WL_CONNECTED);
+     _publisher = this->createPublisher<geometry_msgs::Twist>("RobotState");
+    this->createSubscriber<geometry_msgs::Twist>("Command2Robot", (ros2::CallbackFunc)this->subsclibed, nullptr);
     ros2::init(udp, AGENT_IP, AGENT_PORT);
-  }
-
-  void begin(){
-
-  }
-
-  void stop(){
-
   }
 };
 
 ROS2CAN* node;
+ROS2CAN* ROS2CAN::thisPtr;
 
 void setup() {
   enableCore1WDT();
@@ -44,5 +66,6 @@ void setup() {
 void loop() {
   disableCore1WDT();
   enableCore1WDT();
+  
   ros2::spin(node);
 }
